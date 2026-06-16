@@ -1,140 +1,389 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 
 <head>
-    <meta charset="utf-8">
-    <title>HZ Search</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖書館找書</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
+        /* =========================================
+           純 CSS 樣式設計 (Pure CSS)
+           ========================================= */
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --error-color: #EF4444;
+            --ai-highlight: #EEF2FF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: sans-serif;
-            max-width: 720px;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
             margin: 40px auto;
-            padding: 0 16px
         }
 
-        form {
+        /* 標題區塊 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* 搜尋框區塊 */
+        .search-container {
             display: flex;
-            gap: 8px
-        }
-
-        input {
-            flex: 1;
+            gap: 12px;
+            background: var(--card-bg);
             padding: 10px;
-            font-size: 16px
+            border-radius: 50px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 30px;
         }
 
-        button {
-            padding: 10px 16px
+        .search-container input {
+            flex: 1;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            outline: none;
+            background: transparent;
         }
 
-        .item {
-            border-bottom: 1px solid #ddd;
-            padding: 12px 0
+        .search-container button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-weight: bold;
         }
 
-        small {
-            color: #666
+        .search-container button:hover {
+            background-color: var(--primary-hover);
         }
 
-        #msg {
-            margin: 16px 0;
-            color: #666
+        .search-container button:disabled {
+            background-color: #9CA3AF;
+            cursor: not-allowed;
+        }
+
+        /* 狀態提示 (載入中、錯誤訊息) */
+        #status-message {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            min-height: 24px;
+        }
+
+        .loading {
+            color: var(--primary-color);
+        }
+
+        .error {
+            color: var(--error-color);
+            background: #FEE2E2;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #FCA5A5;
+            display: inline-block;
+        }
+
+        /* 結果網格 */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        /* 書籍卡片 */
+        .book-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .book-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .book-meta {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 12px;
+        }
+
+        .book-meta span {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* AI 推薦理由區塊 */
+        .ai-message {
+            background-color: var(--ai-highlight);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            font-size: 0.95rem;
+            color: #3730A3;
+            flex-grow: 1;
+        }
+
+        .ai-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .score-badge {
+            display: inline-block;
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-top: 10px;
+            align-self: flex-start;
+        }
+
+        /* 響應式微調 */
+        @media (max-width: 600px) {
+            .search-container {
+                flex-direction: column;
+                border-radius: 12px;
+                background: transparent;
+                box-shadow: none;
+            }
+
+            .search-container input,
+            .search-container button {
+                padding: 15px;
+                border-radius: 8px;
+                width: 100%;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <h2>HZ Search</h2>
+    <div class="container">
+        <div class="header">
+            <h1>✨圖書館找書</h1>
+            <p>輸入你想了解的主題或情境，讓 AI 為你推薦最適合的書單！</p>
+        </div>
 
-    <form>
-        <input id="q" placeholder="請輸入查詢文字">
-        <button>往HZ搜尋v1</button>
-    </form>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="例如：我想了解如何提升管理智慧，或是解決生活煩惱..." autocomplete="off">
+            <button id="searchBtn">送出</button>
+        </div>
 
-    <div id="msg"></div>
-    <div id="list"></div>
+        <div id="status-message"></div>
+
+        <div class="results-grid" id="resultsContainer">
+            <!-- 搜尋結果將會動態產生在這裡 -->
+        </div>
+    </div>
 
     <script>
-        $("form").on("submit", function (e) {
-            e.preventDefault();
+        /* =========================================
+           jQuery 互動與 AJAX 邏輯實作
+           ========================================= */
+        $(document).ready(function () {
+            const apiUrl = 'https://20260612.zeabur.app/api/search';
+            const $searchInput = $('#searchInput');
+            const $searchBtn = $('#searchBtn');
+            const $statusMsg = $('#status-message');
+            const $resultsContainer = $('#resultsContainer');
 
-            let query = $("#q").val().trim();
-            if (!query) return;
+            // 點擊按鈕觸發搜尋
+            $searchBtn.on('click', function () {
+                performSearch();
+            });
 
-            $("#msg").text("搜尋中...");
-            $("#list").empty();
-
-            $.ajax({
-                url: "https://20260612.zeabur.app/api/search",
-                method: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ query }),
-                success: function (data) {
-                    console.log(data.results);
-                    let r = data.results || [];
-                    $("#msg").text(r.length ? `共 ${r.length} 筆結果` : "查無結果");
-
-                    r.forEach(x => $("#list").append(`
-                        <div class="item">
-                            <b>${x.title}</b><br>
-                            <p>${x.llm_msg}</p><br>
-                            <small>作者：${x.authors || "-"}｜ISBN：${x.isbn || "-"}｜分數：${x.score}</small>
-                        </div>
-                    `));
-                },
-                error: function (xhr, status, errorThrown) {
-                    let errorMsg = "發生未知錯誤，請稍後再試。";
-
-                    // 情況 1：xhr.status 為 0，代表連線根本沒建立（伺服器真的沒開、網址打錯或網路斷線）
-                    if (xhr.status === 0) {
-                        errorMsg = "API 連線失敗，請確認伺服器是否已啟動，或網路連線是否正常。";
-                    }
-
-                    // 情況 2：伺服器有回應，且有回傳我們在 Flask 定義的 JSON 錯誤訊息
-                    else if (xhr.responseJSON) {
-                        if (xhr.responseJSON.message) {
-                            // 如果後端有寫清楚的 message（例如 429 的 "請求太頻繁，請稍後再試"）
-                            errorMsg = xhr.responseJSON.message;
-                        } else if (xhr.responseJSON.error) {
-                            // 如果後端只有給 error 代碼（例如 413 的 "query_too_long"）
-                            switch (xhr.responseJSON.error) {
-                                case "query_too_long":
-                                    errorMsg = "搜尋字數過長，請縮短至 50 字以內再試。";
-                                    break;
-                                case "missing_query":
-                                    errorMsg = "請輸入搜尋關鍵字，欄位不可為空。";
-                                    break;
-                                default:
-                                    errorMsg = "系統錯誤 (代碼: " + xhr.responseJSON.error + ")";
-                            }
-                        }
-                    }
-
-                    // 情況 3：伺服器有回應錯誤碼，但沒有提供 JSON 內容（備用防線）
-                    else {
-                        if (xhr.status === 429) {
-                            errorMsg = "您點擊得太快了，請稍等一分鐘再試。";
-                        } else if (xhr.status === 413) {
-                            errorMsg = "傳送的內容體積過大，已被伺服器拒絕。";
-                        } else if (xhr.status === 500) {
-                            errorMsg = "伺服器內部發生錯誤（500），請聯絡管理員。";
-                        } else {
-                            errorMsg = "伺服器回應錯誤 (狀態碼: " + xhr.status + ")";
-                        }
-                    }
-
-                    // 1. 將友善的提示文字顯示在畫面上給使用者看
-                    $("#msg").text(errorMsg);
-
-                    // 2. 同時在瀏覽器 Console 印出詳細資訊，方便你自己 debug
-                    console.error("【API 錯誤紀錄】");
-                    console.error("狀態碼:", xhr.status);
-                    console.error("錯誤原因:", errorThrown);
-                    console.error("後端回傳內容:", xhr.responseText);
+            // 支援 Enter 鍵觸發搜尋
+            $searchInput.on('keypress', function (e) {
+                if (e.which === 13) {
+                    performSearch();
                 }
             });
+
+            function performSearch() {
+                const queryText = $searchInput.val().trim();
+
+                // 基礎前端驗證
+                if (!queryText) {
+                    showError("請輸入您想查詢的內容！");
+                    return;
+                }
+
+                // UI 狀態切換至載入中
+                $searchBtn.prop('disabled', true).text('搜尋中...');
+                $statusMsg.html('<span class="loading">正在呼叫 AI 分析書單，請稍候...</span>');
+                $resultsContainer.empty();
+
+                // 執行 AJAX 請求
+                $.ajax({
+                    url: apiUrl,
+                    method: 'GET', // 註：根據 REST 慣例，查詢常為 GET (?query=...)，若您的 API 需要 POST json，請將 method 改為 POST 並加上 contentType: 'application/json' 與 data: JSON.stringify({query: queryText})
+                    data: { query: queryText },
+                    timeout: 30000, // 30 秒 timeout (AI 處理時間可能較長)
+                    success: function (response) {
+                        $statusMsg.empty();
+                        $searchBtn.prop('disabled', false).text('送出');
+
+                        // 確認是否有回傳資料
+                        if (Array.isArray(response) && response.length > 0) {
+                            renderResults(response);
+                        } else {
+                            $statusMsg.html('<span class="loading">找不到相關的書籍，請嘗試其他關鍵字。</span>');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        $searchBtn.prop('disabled', false).text('送出');
+                        handleErrorResponse(xhr);
+                    }
+                });
+            }
+
+            // 處理 API 錯誤狀態碼
+            function handleErrorResponse(xhr) {
+                let errorText = "發生未知錯誤，請稍後再試。";
+
+                // 嘗試從 response 抓取具體的錯誤名稱 (若是 JSON 格式)
+                let serverErrorType = "";
+                try {
+                    if (xhr.responseText) {
+                        // 若後端直接回傳字串或 JSON
+                        const parsed = JSON.parse(xhr.responseText);
+                        serverErrorType = parsed.error || parsed.message || xhr.responseText;
+                    }
+                } catch (e) {
+                    serverErrorType = xhr.responseText;
+                }
+
+                // 根據規格要求處理 HTTP Status Code
+                switch (xhr.status) {
+                    case 400:
+                        // 區分 missing_query 與 invalid_query
+                        if (serverErrorType.includes('missing_query') || xhr.responseText.includes('missing_query')) {
+                            errorText = "錯誤：請提供查詢句子 (Missing Query)。";
+                        } else if (serverErrorType.includes('invalid_query') || xhr.responseText.includes('invalid_query')) {
+                            errorText = "錯誤：查詢內容無效，請重新輸入 (Invalid Query)。";
+                        } else {
+                            errorText = "錯誤：請求無效 (400 Bad Request)。";
+                        }
+                        break;
+                    case 413:
+                        errorText = "錯誤：您輸入的查詢句子太長，請縮短後再試 (Query Too Long)。";
+                        break;
+                    case 429:
+                        errorText = "錯誤：請求次數過多，請稍後再試 (Rate Limit Exceeded)。";
+                        break;
+                    case 0:
+                        errorText = "網路連線異常或跨域限制 (CORS) 阻擋，請檢查網路狀態。";
+                        break;
+                }
+
+                showError(errorText);
+            }
+
+            function showError(msg) {
+                $statusMsg.html(`<div class="error"><i class="fas fa-exclamation-triangle"></i> ${msg}</div>`);
+            }
+
+            // 渲染成功回傳的書籍資料
+            function renderResults(books) {
+                books.forEach(function (book) {
+                    // 將 score 轉為百分比顯示會更直覺 (根據回傳的 0.848 格式)
+                    const scorePercent = (book.score * 100).toFixed(1) + '%';
+
+                    const cardHtml = `
+                    <div class="book-card">
+                        <div class="book-title">${escapeHtml(book.title)}</div>
+                        <div class="book-meta">
+                            <span><strong>作者：</strong> ${escapeHtml(book.authors)}</span>
+                            <span><strong>ISBN：</strong> ${escapeHtml(book.isbn)}</span>
+                        </div>
+                        <div class="ai-message">
+                            <div class="ai-label">🤖 AI 推薦理由</div>
+                            ${escapeHtml(book.llm_msg)}
+                        </div>
+                        <div class="score-badge">推薦關聯度: ${scorePercent}</div>
+                    </div>
+                `;
+                    $resultsContainer.append(cardHtml);
+                });
+            }
+
+            // 預防 XSS 攻擊的跳脫字元處理函數
+            function escapeHtml(unsafe) {
+                if (!unsafe) return "";
+                return unsafe
+                    .toString()
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
         });
     </script>
 
