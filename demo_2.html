@@ -92,12 +92,12 @@
                         id="queryInput" 
                         rows="3" 
                         class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 pl-4 pr-12 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none text-base"
-                        placeholder="例如：我想找一些跟精釀啤酒有關的書，最好是有介紹釀造原理或是精美插圖的..."
-                        maxlength="500"
+                        placeholder="例如：我想找漫畫啤酒入門書"
+                        maxlength="50"
                         required></textarea>
                     
                     <div class="absolute bottom-3 right-3 text-xs text-slate-500" id="charCounter">
-                        0 / 500
+                        0 / 50
                     </div>
                 </div>
 
@@ -106,10 +106,10 @@
                     <div class="flex flex-wrap gap-2 justify-start items-center w-full sm:w-auto">
                         <span class="text-xs text-slate-400">試試這些：</span>
                         <button type="button" class="sample-btn text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-full transition-all border border-slate-600/30">
-                            🍺 介紹啤酒入門與漫畫
+                            🍺 漫畫啤酒入門
                         </button>
                         <button type="button" class="sample-btn text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-full transition-all border border-slate-600/30">
-                            🤖 人工智慧與未來科技
+                            🤖 人工智慧與未來
                         </button>
                     </div>
 
@@ -196,11 +196,11 @@
                 $queryInput.val(sampleText).trigger('input');
             });
 
-            // 即時字數計算
+            // 即時字數計算 (後端限制 query 最長為 50 字)
             $queryInput.on('input', function() {
                 const len = $(this).val().length;
-                $charCounter.text(`${len} / 500`);
-                if (len > 450) {
+                $charCounter.text(`${len} / 50`);
+                if (len > 45) {
                     $charCounter.removeClass('text-slate-500').addClass('text-yellow-500');
                 } else {
                     $charCounter.removeClass('text-yellow-500').addClass('text-slate-500');
@@ -225,10 +225,16 @@
                     url: 'https://20260612.zeabur.app/api/search',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ query }),
+                    data: JSON.stringify({ query: queryVal }),
                     dataType: 'json',
                     success: function(data) {
-                        renderResults(data);
+                        // 【關鍵修正】對照後端格式：後端回傳結構為 { results: [...], query: "..." }
+                        // 因此需要傳入 data.results
+                        if (data && data.results) {
+                            renderResults(data.results);
+                        } else {
+                            renderResults([]);
+                        }
                     },
                     error: function(xhr, status, error) {
                         handleError(xhr);
@@ -260,20 +266,19 @@
                 switch (xhr.status) {
                     case 400:
                         title = "無效的查詢 (錯誤碼：400)";
-                        // 如果 API 回傳格式中有詳細的錯誤碼，可以解出來
                         if (xhr.responseJSON && xhr.responseJSON.message) {
-                            msg = `伺服器回應：${xhr.responseJSON.message}。請確認您輸入的文字是否正確或填寫了空內容。`;
+                            msg = `伺服器回應：${xhr.responseJSON.message}`;
                         } else {
                             msg = "請確認您輸入的字詞是否有效，並重新輸入後再試一次。";
                         }
                         break;
                     case 413:
                         title = "輸入字數過長 (錯誤碼：413)";
-                        msg = "您輸入的文字長度超出了伺服器處理範圍，請精簡或縮短您的描述語句後再試。";
+                        msg = "您輸入的文字長度超出了伺服器處理範圍（上限為 50 字），請精簡您的描述語句。";
                         break;
                     case 429:
                         title = "請求過於頻繁 (錯誤碼：429)";
-                        msg = "您已達到搜尋的速率限制。系統目前非常繁忙，請稍候 1~2 分鐘後重新整理再試一次。";
+                        msg = "您已達到搜尋的速率限制（每分鐘 5 次）。系統目前忙碌，請稍候再重試。";
                         break;
                     default:
                         title = `連線異常 (${xhr.status || '連線逾時'})`;
@@ -287,7 +292,7 @@
                 
                 // 補回一個無結果的狀態在列表中
                 $resultsList.html(`
-                    <div class="text-center py-12 text-slate-600">
+                    <div class="text-center py-12 text-slate-600 animate-fade-in-up">
                         <svg class="w-12 h-12 mx-auto mb-3 text-red-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <p class="text-sm">很抱歉，因為上述錯誤，目前無法為您取得推薦結果。</p>
                     </div>
