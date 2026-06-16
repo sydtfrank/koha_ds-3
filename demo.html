@@ -72,16 +72,17 @@
                 contentType: "application/json",
                 data: JSON.stringify({ query }),
                 success: function (data) {
+                    console.log(data.results);
                     let r = data.results || [];
                     $("#msg").text(r.length ? `共 ${r.length} 筆結果` : "查無結果");
 
                     r.forEach(x => $("#list").append(`
-                <div class="item">
-                    <b>${x.title}</b><br>
-                    <p>${x.llm_msg}</p><br>
-                    <small>作者：${x.authors || "-"}｜ISBN：${x.isbn || "-"}｜分數：${x.score}</small>
-                </div>
-            `));
+                        <div class="item">
+                            <b>${x.title}</b><br>
+                            <p>${x.llm_msg}</p><br>
+                            <small>作者：${x.authors || "-"}｜ISBN：${x.isbn || "-"}｜分數：${x.score}</small>
+                        </div>
+                    `));
                 },
                 error: function (xhr, status, errorThrown) {
                     let errorMsg = "發生未知錯誤，請稍後再試。";
