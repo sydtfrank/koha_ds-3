@@ -302,7 +302,8 @@ $(document).ready(function() {
                 
                 response.results.forEach(function(book) {
                     // 產生 Koha 詳細頁連結
-                    const detailUrl = `http://ds-3.koha.com.tw/cgi-bin/koha/opac-detail.pl?biblionumber=${book.id}`;
+                    //const detailUrl = `http://ds-3.koha.com.tw/cgi-bin/koha/opac-detail.pl?biblionumber=${book.id}`;
+                    const detailUrl = `https://opac.koha.com.tw/cgi-bin/koha/opac-detail.pl?biblionumber=${book.id}`;
                     
                     // 組裝單本書籍的 HTML
                     const bookCardHtml = `
